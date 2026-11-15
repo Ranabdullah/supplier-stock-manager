@@ -8,7 +8,7 @@ if(fs.existsSync(out)){
 fs.mkdirSync(out,{recursive:true});
 // Explicit source allowlist: private folders, databases and credentials never ship.
 for(const file of ['index.html','_headers','data-schema.js','buyer-cloud.js','buyer-examples.js','buyer-guide.js','buyer-phone.js','buyer-phone.css'])fs.copyFileSync(path.join(root,file),path.join(out,file));
-fs.writeFileSync(path.join(out,'app-config.js'),'window.STOCK_DEMO='+process.argv.includes('--demo')+';\n');
+fs.writeFileSync(path.join(out,'app-config.js'),'window.STOCK_DEMO='+process.argv.includes('--demo')+';window.STOCK_HOSTED='+process.argv.includes('--hosted')+';\n');
 const vendor=path.join(out,'vendor');fs.mkdirSync(vendor,{recursive:true});
 require('esbuild').buildSync({entryPoints:[path.join(root,'scripts/reports.js')],bundle:true,minify:true,format:'iife',platform:'browser',target:'es2022',outfile:path.join(vendor,'reports.js'),legalComments:'eof'});
 function copy(from,to){const target=path.join(vendor,to);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,'node_modules',from),target);}

@@ -1,7 +1,6 @@
 // Fictional examples are opt-in. Real workspaces start empty.
-window.BUYER_EXAMPLE=async()=>{
- const d=structuredClone(BUYER_DATA_ADAPTER.capture());
- if(d.suppliers.some(x=>x.id==='example-supplier'))return;
+function addFictionalStock(d){
+ if(d.suppliers.some(x=>x.id==='example-supplier'))return d;
  d.suppliers.push({id:'example-supplier',name:'Demo Wholesale',email:'supplier@example.invalid',contact:'Fictional contact',notes:'Fictional example — delete when ready',openingBalance:0});
  const date=new Date().toISOString().slice(0,10);
  d.categories.push(...['Accessories','Cables'].filter(x=>!d.categories.includes(x)));
@@ -9,5 +8,6 @@ window.BUYER_EXAMPLE=async()=>{
  d.orders.push({id:'example-order',supplierId:'example-supplier',ref:'DEMO-001',type:'order',date,deliveryCost:5,items});
  d.orders.push({id:'example-return',supplierId:'example-supplier',ref:'DEMO-RETURN',type:'return',date,items:[{...items[0],qty:2,arrivedQty:0}]});
  d.supplierPayments.push({id:'example-payment',supplierId:'example-supplier',date,amount:40,method:'Demo bank transfer',ref:'Fictional payment'});
- await BUYER_DATA_ADAPTER.restore(d);
-};
+ return d;
+}
+window.BUYER_EXAMPLE=async()=>{await BUYER_DATA_ADAPTER.restore(addFictionalStock(structuredClone(BUYER_DATA_ADAPTER.capture())));};

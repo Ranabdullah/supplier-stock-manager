@@ -92,7 +92,7 @@ npx wrangler login
 npx wrangler deploy --config wrangler.demo.jsonc
 ```
 
-Change the Worker name in the demo config if needed. It serves static files only. Demo records stay in the visitor's browser; use fictional examples. There is no shared account database. Run `npm run build` again before deploying a private own-cloud edition.
+Change the Worker name in the demo config if needed. It serves static files only. The demo opens with fictional records, which reset on reload. If you want the separate hosted account experience, build with node scripts/build.cjs --hosted and deploy using your own configured Worker and D1. Edit the demo and account URLs in index.html and buyer-cloud.js to match your deployments. Run `npm run build` again before deploying a private own-cloud edition.
 
 Cloudflare Git builds can run `npm ci && npm run build` and deploy `npx wrangler deploy --config wrangler.own.jsonc`. Configure your own DB and secrets. Commit your own config only after checking it contains no secrets. For a static demo, use `npm run build:demo` and the demo config instead.
 

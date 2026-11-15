@@ -14,9 +14,8 @@ dialog.querySelector('#buyerOpenCloud').onclick=()=>{localStorage.setItem(key,'y
 dialog.querySelector('#buyerEnableFolder').onclick=async()=>{try{info=await request();if(info.backup&&!confirm('An existing folder backup is saved. To load it, cancel and use Restore. Replace it with this browser’s records?'))return;enabled=true;localStorage.setItem(backupKey,'yes');await save(true);}catch(error){status(error.message);}};
 dialog.querySelector('#buyerSaveFolder').onclick=()=>save(true);
 dialog.querySelector('#buyerRestoreFolder').onclick=async()=>{try{info=await request();const value=info.backup;if(!value||!adapter.valid(value.records))throw Error('No valid folder backup exists for this product.');if(!confirm('Replace this browser’s records with the folder backup? Export current data first.'))return;await adapter.restore(value.records);localStorage.setItem(key,'yes');location.reload();}catch(error){status(error.message);}};
-document.body.append(button,dialog);if(!localStorage.getItem(key))dialog.showModal();
+document.body.append(button,dialog);if(!window.STOCK_DEMO&&!window.STOCK_HOSTED&&!localStorage.getItem(key))dialog.showModal();
 // Reopening a browser never silently overwrites an existing folder copy.
 if(localStorage.getItem(backupKey)==='yes')request().then(value=>{info=value;last=value.backup?fingerprint(value.backup):'';const current=fingerprint({product:adapter.id,format:1,records:adapter.capture()});enabled=!value.backup||last===current;if(!enabled)status('A saved folder copy is available. Restore it, or enable folder backup to confirm saving this browser’s records.');}).catch(()=>{});
 setInterval(()=>save(),20000);
 })();
-if(window.STOCK_DEMO){const notice=document.createElement('aside');notice.textContent='Public demo · use fictional records. Records stay in this browser; no shared cloud database.';notice.style.cssText='position:sticky;top:0;z-index:99;background:#f0e8d7;color:#493a22;padding:10px 16px;font:13px/1.5 system-ui';document.body.prepend(notice);}

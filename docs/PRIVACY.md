@@ -7,6 +7,6 @@
 - Cloud sessions and the master password remain in memory while the backup panel is open; Close/sign out clears them. Each cloud account is separate. Delete cloud account removes its saved cloud copy; local records and downloaded files remain until you remove them separately.
 - PDF and English OCR processing run in the browser using locally served libraries/workers/models. The app does not upload invoice images to an OCR service. No analytics or advertising is included.
 - Hosting providers still handle normal connection metadata. Public deployment source, models, scripts and design assets are downloadable; never place private files in the public build.
-- The public demo has no backend. Use fictional records there; browser storage can still retain anything you enter until you erase it.
+- The public demo uses in-memory sample records. The separate hosted account site keeps its working copy in memory and uploads an encrypted snapshot only when you choose Save. The account site uses a separate database.
 
 GitHub hosts code only. Never commit customer records, `Local Data`, exported backups, API tokens, `.env`, `.dev.vars`, `.wrangler` or private deployment credentials. Disclose suspected security issues privately through the repository owner's GitHub profile, without posting sensitive records.

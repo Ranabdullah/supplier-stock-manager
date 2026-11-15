@@ -620,7 +620,7 @@ function defaultDB(){
 }
 
 let loadedLocal = false, storageNeedsRecovery = false;
-let db = loadDB();
+let db = window.STOCK_DEMO || window.STOCK_HOSTED ? defaultDB() : loadDB();
 
 function loadDB(){
   for(const key of [DB_KEY,BACKUP_KEY]) {
@@ -631,6 +631,7 @@ function loadDB(){
 }
 
 function saveDB(){
+  if (window.STOCK_DEMO || window.STOCK_HOSTED) return Promise.resolve(true);
   if(storageNeedsRecovery){toast('Existing damaged copies are preserved. Restore a valid backup before saving.');return Promise.resolve(false);}
   db.meta={...db.meta,savedAt:Date.now()};
   let localSaved=false;
@@ -2524,12 +2525,13 @@ function loadPendingState(){
   }catch(e){}
 }
 function savePendingState(){
+  if(window.STOCK_DEMO || window.STOCK_HOSTED)return;
   try{
     localStorage.setItem(PENDING_KEY, JSON.stringify(pendingLines));
     localStorage.setItem(PENDING_META_KEY, JSON.stringify(pendingOrderMeta));
   }catch(e){}
 }
-loadPendingState();
+if(!window.STOCK_DEMO && !window.STOCK_HOSTED)loadPendingState();
 
 function addPendingLine(){
   const category = document.getElementById('li-category').value.trim();
@@ -6659,8 +6661,19 @@ document.getElementById('file-import').addEventListener('change', e => {
   e.target.value = '';
 });
 
-/* initial boot (checks password lock first) */
-boot();
+/* Public modes keep workspace data in memory. */
+if(!window.STOCK_DEMO && !window.STOCK_HOSTED)boot();
 </script>
-<script src="buyer-phone.js"></script><script>window.BUYER_DATA_ADAPTER={id:"supplier-stock-manager",capture:()=>db,valid:d=>StockSchema.valid(d),restore:async d=>{const next=StockSchema.normalise(d);exportBackup();const previous=db;storageNeedsRecovery=false;db=next;if(!await saveDB()){db=previous;throw Error('Browser could not save the restored records.');}}};</script><script src="buyer-cloud.js"></script><script src="buyer-examples.js"></script><script src="buyer-guide.js"></script></body>
+<script src="buyer-phone.js"></script><script>window.BUYER_DATA_ADAPTER={id:"supplier-stock-manager",capture:()=>db,valid:d=>StockSchema.valid(d),replaceSession:d=>{db=StockSchema.normalise(d);pendingLines=[];pendingOrderMeta={date:todayStr(),note:"",store:"",deliveryCost:0};setView("home");},restore:async d=>{const next=StockSchema.normalise(d);exportBackup();const previous=db;storageNeedsRecovery=false;db=next;if(!await saveDB()){db=previous;throw Error('Browser could not save the restored records.');}}};</script><script src="buyer-cloud.js"></script><script src="buyer-examples.js"></script><script src="buyer-guide.js"></script><script>
+if(window.STOCK_DEMO){
+  db=addFictionalStock(defaultDB());
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('shell').style.display='flex';
+  render();
+  const bar=document.createElement('div');
+  bar.style.cssText='display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:#e8eef7;color:#203650';
+  bar.innerHTML='<strong>Supplier Ledger demo</strong><span>Fictional suppliers, orders and returns. Changes reset on reload.</span><a class="btn accent" href="https://supplier-stock-accounts.ranakaharian1.workers.dev/?view=create">Create account</a><a href="https://supplier-stock-accounts.ranakaharian1.workers.dev/">Sign in</a>';
+  document.body.prepend(bar);
+}
+</script></body>
 </html>

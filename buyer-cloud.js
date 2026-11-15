@@ -2,6 +2,7 @@
 (() => {
   const adapter = window.BUYER_DATA_ADAPTER;
   if (!adapter) return;
+  const hosted = window.STOCK_HOSTED;
   const enc = new TextEncoder(), dec = new TextDecoder();
   let token = null, version = null, activeEmail = null, activeOrigin = null, activePassword = null;
   const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -54,25 +55,34 @@
       await adapter.restore(value.records);location.reload();return;
     }
     if(action==='close') {
+      if(hosted && token && !confirm('Sign out and discard any changes you have not saved to your account?'))return;
       try{if(token&&activeOrigin)await api(activeOrigin,'/api/auth/logout','POST');}catch{}
-      token=null;version=null;activeEmail=null;activeOrigin=null;activePassword=null;field('buyerCloudPassword').value='';panel.hidden=true;open.focus();return;
+      token=null;version=null;activeEmail=null;activeOrigin=null;activePassword=null;field('buyerCloudPassword').value='';if(hosted){location.replace(location.pathname);return;}
+      panel.hidden=true;open.focus();return;
     }
     if(window.STOCK_DEMO)throw new Error('The public demo has no cloud database. Deploy your own copy using the GitHub setup guide. Local export and import still work.');
     const {origin,email,password}=inputs();
     if(action==='register'||action==='login') {
       token=null;version=null;activeEmail=null;activeOrigin=null;activePassword=null;
       const body={email,authVerifier:await verifier(email,password)};
-      if(action==='register')body.encryptedVault=await encrypt(snapshot(),password);
+      if(action==='register')body.encryptedVault=await encrypt(hosted?{product:adapter.id,format:1,records:defaultDB()}:snapshot(),password);
       const data=await api(origin,'/api/auth/'+(action==='register'?'register':'login'),'POST',body);
-      if(data.encryptedVault)await decrypt(data.encryptedVault,password);
+      const restored=data.encryptedVault?await decrypt(data.encryptedVault,password):null;
+      if(hosted&&restored&&(restored.product!==adapter.id||restored.format!==1||!adapter.valid(restored.records)))throw new Error('This account backup could not be opened.');
       token=data.token;version=data.version;activeEmail=email;activeOrigin=origin;activePassword=password;
       localStorage.setItem('buyer_cloud_origin_'+adapter.id,origin);
+      if(hosted){
+        adapter.replaceSession(restored?.records||defaultDB());
+        document.getElementById('shell').style.display='flex';
+        panel.hidden=true;
+        syncHostedButtons();
+      }
       status('Signed in. Create account stores the initial encrypted backup; sign-in does not overwrite local data.');return;
     }
     if(!token||activeEmail!==email||activeOrigin!==origin||activePassword!==password)throw new Error('Sign in to this cloud account and address first.');
     if(action==='delete'){
       if(!confirm('Delete this cloud account and its encrypted backup permanently? Export or restore any needed cloud copy first. Local records will remain.'))return;
-      await api(origin,'/api/account','DELETE');token=null;version=null;activePassword=null;field('buyerCloudPassword').value='';status('Cloud account deleted. Local records remain.');return;
+      await api(origin,'/api/account','DELETE');token=null;version=null;activePassword=null;field('buyerCloudPassword').value='';if(hosted){location.replace(location.pathname);return;}status('Cloud account deleted. Local records remain.');return;
     }
     if(action==='save') {
       if(!confirm('Replace this account’s cloud backup with the current local data? Keep an exported backup first.'))return;
@@ -89,4 +99,26 @@
   panel.addEventListener('click',async event=>{const button=event.target.closest('button[data-action]');if(!button)return;const buttons=[...panel.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{status('Working…');await act(button.dataset.action);}catch(error){status(error.message+' Your existing local data remains available.');}finally{buttons.forEach(b=>b.disabled=false);}});
   open.onclick=()=>{field('buyerCloudUrl').value=localStorage.getItem('buyer_cloud_origin_'+adapter.id)||location.origin;panel.hidden=false;field('buyerCloudEmail').focus();};
   document.body.append(open,panel);
+  function syncHostedButtons(){
+    if(!hosted)return;
+    for(const a of ['register','login']) panel.querySelector('[data-action="'+a+'"]').hidden=!!token;
+    for(const a of ['save','restore','delete','close']) panel.querySelector('[data-action="'+a+'"]').hidden=!token;
+    local.hidden=!token;
+    field('buyerCloudEmail').readOnly=!!token;
+    field('buyerCloudPassword').hidden=!!token;
+    panel.querySelector('label[for=buyerCloudPassword]').hidden=!!token;
+    open.textContent='Account & save';
+  }
+  if(hosted){
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('shell').style.display='none';
+    panel.querySelector('h2').textContent='Your Supplier Ledger account';
+    panel.querySelector('form > p').textContent='Create an empty workspace or sign in to your saved records. Use Account & save to keep changes before closing.';
+    field('buyerCloudUrl').value=location.origin;
+    field('buyerCloudUrl').hidden=true;
+    panel.querySelector('label[for=buyerCloudUrl]').hidden=true;
+    const demo=document.createElement('a');demo.href='https://supplier-stock-manager-demo.ranakaharian1.workers.dev/';demo.textContent='Explore the fictional demo';panel.querySelector('form').append(demo);
+    panel.hidden=false;
+    syncHostedButtons();
+  }
 })();

@@ -4,7 +4,7 @@
 
 A browser workspace for suppliers, purchase orders, deliveries, returns and stock planning. Start empty, or add fictional examples from the in-app guide.
 
-[Live demo](https://supplier-stock-manager-demo.ranakaharian1.workers.dev/) · [Make it yours](docs/SETUP.md) · [Review and fixes](docs/REVIEW.md) · [Privacy](docs/PRIVACY.md)
+[Live demo](https://supplier-stock-manager-demo.ranakaharian1.workers.dev/) · [Create account or sign in](https://supplier-stock-accounts.ranakaharian1.workers.dev/) · [Make it yours](docs/SETUP.md) · [Review and fixes](docs/REVIEW.md) · [Privacy](docs/PRIVACY.md)
 
 ## Explore
 
@@ -37,7 +37,7 @@ npm start
 
 Open `http://127.0.0.1:8102`. Keep the terminal open and use the same browser/address. On Windows, `Start-Local.cmd` prepares missing build files and opens the app. First run downloads pinned dependencies; after building, `node local-server.cjs` needs no internet for the core app, PDF, Excel or English OCR.
 
-The local screen password is a convenience lock. Browser data and local JSON backups are readable; keep the computer and backups private. The public demo has no cloud database and should be used with fictional records.
+The local screen password is a convenience lock. Browser data and local JSON backups are readable; keep the computer and backups private. The public demo opens with fictional orders and resets on reload. The separate account site opens an empty workspace on signup and restores your saved records on sign-in. Use **Account & save** before closing.
 
 ## Verify
 
