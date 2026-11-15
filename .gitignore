@@ -1,0 +1,24 @@
+node_modules/
+.git/
+.env*
+!.env.example
+.next/
+dist/
+.wrangler/
+.dev.vars*
+*.pem
+*.p12
+*.jks
+*.keystore
+*.log
+backups/
+private/
+
+Local Data/
+
+test-results/
+*.zip
+*.dlvault
+release-private/
+wrangler.own.jsonc
+scripts/update-source.py

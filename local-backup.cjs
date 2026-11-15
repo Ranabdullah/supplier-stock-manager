@@ -1,0 +1,14 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),schema=require('./data-schema.js');
+module.exports=function(root,product){const dir=path.join(root,'Local Data'),file=path.join(dir,'backup.json'),token=crypto.randomBytes(32).toString('hex');let busy=false;
+function read(){if(!fs.existsSync(file))return{version:0,backup:null};const value=JSON.parse(fs.readFileSync(file,'utf8'));if(value.product!==product||!Number.isInteger(value.version)||value.format!==1)throw Error('The folder backup is invalid. Preserve Local Data and check it before saving.');return value;}
+function reply(res,status,value){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
+return async(req,res,url)=>{if(url.pathname!=='/api/local-backup')return false;
+try{if(req.method==='GET'){const value=read();reply(res,200,{...value,token,folder:'Local Data'});return true;}
+if(req.method!=='POST'){reply(res,405,{error:'Use GET or POST'});return true;}
+if(req.headers.origin!=='http://'+req.headers.host||req.headers['x-buyer-backup-token']!==token){reply(res,403,{error:'Open this app locally before saving a folder backup.'});return true;}
+if(busy){reply(res,409,{error:'Another folder save is running. Try again.'});return true;}
+busy=true;let value;try{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>10*1024*1024)throw Error('Backup exceeds 10 MB; use Export local backup.');chunks.push(chunk);}value=JSON.parse(Buffer.concat(chunks).toString('utf8'));const old=read();if(value.version!==old.version){reply(res,409,{error:'The folder backup changed. Read or restore it before saving again.'});return true;}
+const backup=value.backup;if(backup?.product!==product||backup.format!==1||!schema.valid(backup.records))throw Error('Wrong product or invalid backup.');fs.mkdirSync(dir,{recursive:true});if(old.backup){const archive=path.join(dir,'Previous Backups');fs.mkdirSync(archive,{recursive:true});fs.copyFileSync(file,path.join(archive,'backup-'+old.version+'.json'));const files=fs.readdirSync(archive).filter(n=>/^backup-\d+\.json$/.test(n)).sort((a,b)=>Number(a.match(/\d+/)[0])-Number(b.match(/\d+/)[0]));for(const name of files.slice(0,-10))fs.unlinkSync(path.join(archive,name));}
+const next={product,format:1,version:old.version+1,savedAt:new Date().toISOString(),backup};const tmp=file+'.tmp';fs.writeFileSync(tmp,JSON.stringify(next,null,2));fs.renameSync(tmp,file);reply(res,200,{version:next.version,savedAt:next.savedAt,folder:'Local Data'});
+}finally{busy=false;}return true;
+}catch(error){reply(res,409,{error:error.message});return true;}}};

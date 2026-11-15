@@ -1,0 +1,30 @@
+{
+  "name": "supplier-stock-manager",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Local supplier ledger, purchase orders, stock tracking and optional encrypted backups",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "npm run build && node local-server.cjs",
+    "build": "node scripts/build.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "node tests/browser.cjs",
+    "test:cloud-browser": "node tests/cloud-browser.cjs",
+    "build:demo": "node scripts/build.cjs --demo"
+  },
+  "devDependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
+    "esbuild": "^0.28.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
+    "miniflare": "^5.20261113.0-beta",
+    "pdfjs-dist": "^6.5.438",
+    "playwright": "^1.65.1",
+    "tesseract.js": "^7.0.0",
+    "wrangler": "^4.162.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
+}

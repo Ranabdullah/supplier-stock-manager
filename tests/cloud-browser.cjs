@@ -1,0 +1,19 @@
+const{Miniflare,convertV4MiniflareOptions}=require('miniflare'),{chromium}=require('playwright'),fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=require('node:assert/strict');
+(async()=>{
+ const mf=new Miniflare(convertV4MiniflareOptions({name:'stock-browser',host:'127.0.0.1',port:0,modules:true,scriptPath:path.resolve('cloudflare/worker.mjs'),compatibilityDate:'2026-10-01',d1Databases:['DB'],bindings:{JWT_SECRET:crypto.randomBytes(32).toString('hex'),MIGRATION_PENDING:'false'},assets:{directory:path.resolve('dist'),binding:'ASSETS',run_worker_first:['/api/*'],routerConfig:{has_user_worker:true}},ratelimits:Object.fromEntries(['AUTH_LIMIT','LOGIN_LIMIT','REGISTER_LIMIT'].map((name,i)=>[name,{namespace_id:String(i+1),simple:{limit:60,period:60}}]))}));
+ let browser;
+ try{
+  const db=await mf.getD1Database('DB'),sql=fs.readFileSync('cloudflare/migrations/0001_vault.sql','utf8').replace(/--[^\n]*/g,'');await db.batch(sql.split(';').filter(x=>x.trim()).map(x=>db.prepare(x)));
+  const origin=(await mf.ready).origin;browser=await chromium.launch({channel:process.env.CI?undefined:'chrome',headless:true});const errors=[];
+  async function open(width){const c=await browser.newContext({viewport:{width,height:900},acceptDownloads:true}),p=await c.newPage();p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());await p.goto(origin);await p.locator('#buyerGuideContinue').click();await p.locator('#setup-pw').fill('LocalScreen42');await p.locator('#setup-pw2').fill('LocalScreen42');await p.locator('#btn-setup-pw').click();return p;}
+  async function credentials(p,action){await p.locator('#buyerCloudOpen').click();await p.locator('#buyerCloudEmail').fill('cloud-demo@example.invalid');await p.locator('#buyerCloudPassword').fill('PrivateCloudDemoPassword42');await p.locator('[data-action='+action+']').click();await p.waitForFunction(()=>document.getElementById('buyerCloudStatus').textContent.startsWith('Signed in.'));}
+  const desktop=await open(1440);await desktop.evaluate(async()=>{await BUYER_EXAMPLE();render()});await credentials(desktop,'register');
+  const phone=await open(390);await credentials(phone,'login');assert.equal(await phone.evaluate(()=>db.orders.length),0,'sign-in does not overwrite local records');
+  await phone.locator('[data-action=restore]').click();await phone.waitForFunction(()=>db.orders.length===2);await phone.waitForFunction(()=>document.getElementById('shell').style.display==='flex');
+  await phone.evaluate(async()=>{db.suppliers[0].name='Demo Phone Edit';await saveDB();render()});await credentials(phone,'login');await phone.locator('[data-action=save]').click();await phone.waitForFunction(()=>document.getElementById('buyerCloudStatus').textContent.startsWith('Encrypted backup saved'));
+  await desktop.locator('[data-action=save]').click();await desktop.waitForFunction(()=>document.getElementById('buyerCloudStatus').textContent.includes('Cloud changed'));assert.equal(await desktop.evaluate(()=>db.suppliers[0].name),'Demo Wholesale','conflict leaves local records untouched');
+  await phone.locator('[data-action=delete]').click();await phone.waitForFunction(()=>document.getElementById('buyerCloudStatus').textContent.startsWith('Cloud account deleted'));assert.equal(await phone.evaluate(()=>db.orders.length),2,'cloud deletion preserves local workspace');
+  await phone.locator('[data-action=close]').click();assert.equal(await phone.locator('#buyerCloudPassword').inputValue(),'','sign-out clears password field');
+  assert.deepEqual(errors,[]);console.log('PASS actual desktop/390px encrypted registration, login without overwrite, cross-browser restore, concurrent-save conflict, cloud deletion and sign-out.');
+ }finally{await browser?.close();await mf.dispose();}
+})().catch(e=>{console.error(e);process.exitCode=1});
